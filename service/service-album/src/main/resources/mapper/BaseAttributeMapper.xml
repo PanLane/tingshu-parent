@@ -1,11 +1,27 @@
 <?xml version="1.0" encoding="UTF-8" ?>
-<!DOCTYPE mapper
-PUBLIC "-//ibatis.apache.org//DTD Mapper 3.0//EN"
-"http://ibatis.apache.org/dtd/ibatis-3-mapper.dtd">
-
-
+<!DOCTYPE mapper PUBLIC "-//ibatis.apache.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="com.atguigu.tingshu.album.mapper.BaseAttributeMapper">
 
 
+    <resultMap id="BaseAttributeMap" type="com.atguigu.tingshu.model.album.BaseAttribute">
+        <id property="id" column="id"/>
+        <collection property="attributeValueList" ofType="com.atguigu.tingshu.model.album.BaseAttributeValue">
+            <id property="id" column="attribute_value_id"/>
+            <result property="valueName" column="attribute_value_name"/>
+        </collection>
+    </resultMap>
+
+    <select id="selectAttribute" resultMap="BaseAttributeMap">
+        select
+            a.id,
+            a.attribute_name,
+            a.category1_id,
+            av.id as attribute_value_id,
+            av.value_name as attribute_value_name
+        from base_attribute a
+        join base_attribute_value av on a.id = av.attribute_id
+        where a.category1_id = #{category1Id}
+        and a.is_deleted = 0
+    </select>
 </mapper>
 
