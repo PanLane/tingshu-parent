@@ -1,11 +1,41 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 <!DOCTYPE mapper
-PUBLIC "-//ibatis.apache.org//DTD Mapper 3.0//EN"
-"http://ibatis.apache.org/dtd/ibatis-3-mapper.dtd">
+PUBLIC "-//ibatis.apache.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 
 
 <mapper namespace="com.atguigu.tingshu.album.mapper.AlbumInfoMapper">
 
+    <select id="selectUserAlbumPage" resultType="com.atguigu.tingshu.vo.album.AlbumListVo">
+        select
+            i.id album_id,i.album_title,i.include_track_count,i.cover_url,i.is_finished,i.status,
+            sum(case when s.stat_type = 0401 then s.stat_num else 0 end) as play_stat_num,
+            sum(case when s.stat_type = 0402 then s.stat_num else 0 end) as subscribe_stat_num,
+            sum(case when s.stat_type = 0403 then s.stat_num else 0 end) as buy_stat_num,
+            sum(case when s.stat_type = 0404 then s.stat_num else 0 end) as comment_stat_num
+        from album_info i
+        join album_stat s on i.id = s.album_id
+        <where>
+                i.is_deleted = 0
+            and s.is_deleted = 0
+            <if test="vo.status != null and vo.status != ''">
+                and i.status = #{vo.status}
+            </if>
+            <if test="vo.userId != null">
+                and i.user_id = #{vo.userId}
+            </if>
+            <if test="vo.albumTitle != null and vo.albumTitle != ''">
+                and i.album_title like concat('%',#{vo.albumTitle},'%')
+            </if>
+        </where>
+        group by i.id
+        order by i.id desc
+    </select>
 
+    <update id="incrIncludeTraceCount">
+        update album_info set include_track_count = include_track_count + 1 where id = #{id} and is_deleted = 0
+    </update>
+    <update id="decrIncludeTraceCount">
+        update album_info set include_track_count = include_track_count - 1 where id = #{id} and is_deleted = 0
+    </update>
 </mapper>
 

@@ -1,10 +1,44 @@
 <?xml version="1.0" encoding="UTF-8" ?>
-<!DOCTYPE mapper
-PUBLIC "-//ibatis.apache.org//DTD Mapper 3.0//EN"
-"http://ibatis.apache.org/dtd/ibatis-3-mapper.dtd">
+<!DOCTYPE mapper PUBLIC "-//ibatis.apache.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 
 
 <mapper namespace="com.atguigu.tingshu.album.mapper.TrackInfoMapper">
 
+    <update id="updateOrderNum">
+        update track_info
+        set order_num = order_num - 1
+        where
+          is_deleted = 0
+          and album_id = #{albumId}
+          and order_num > (select * from (select order_num from track_info where id = #{id} and is_deleted = 0) temp)
+    </update>
+
+    <select id="selectAlbumTrackPage" resultType="com.atguigu.tingshu.vo.album.TrackListVo">
+        select
+            t.album_id,t.id track_id,t.track_title,t.cover_url,t.media_duration,t.status,
+            a.album_title,
+            sum(case when s.stat_type = 0701 then s.stat_num else 0 end) as play_stat_num,
+            sum(case when s.stat_type = 0702 then s.stat_num else 0 end) as collect_stat_num,
+            sum(case when s.stat_type = 0703 then s.stat_num else 0 end) as praise_stat_num,
+            sum(case when s.stat_type =0704 then s.stat_num else 0 end) as comment_stat_num
+        from track_info t
+        join track_stat s on t.id = s.track_id
+        join album_info a on t.album_id = a.id
+        <where>
+            t.is_deleted = 0
+            and s.is_deleted = 0
+            <if test="vo.status != null and vo.status != ''">
+                and t.status = #{vo.status}
+            </if>
+            <if test="vo.userId != null">
+                and t.user_id = #{vo.userId}
+            </if>
+            <if test="vo.trackTitle != null and vo.trackTitle != ''">
+                and t.trackTitle like concat('%',#{vo.trackTitle},'%')
+            </if>
+        </where>
+        group by t.id
+        order by t.id desc
+    </select>
 </mapper>
 
