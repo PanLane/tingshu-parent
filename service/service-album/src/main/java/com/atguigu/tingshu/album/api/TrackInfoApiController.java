@@ -1,7 +1,9 @@
 package com.atguigu.tingshu.album.api;
 
 import com.atguigu.tingshu.album.service.TrackInfoService;
+import com.atguigu.tingshu.common.annotation.TsLogin;
 import com.atguigu.tingshu.common.result.Result;
+import com.atguigu.tingshu.common.util.AuthContextHolder;
 import com.atguigu.tingshu.model.album.TrackInfo;
 import com.atguigu.tingshu.query.album.TrackInfoQuery;
 import com.atguigu.tingshu.vo.album.TrackInfoVo;
@@ -38,12 +40,14 @@ public class TrackInfoApiController {
 		return Result.ok();
 	}
 
+	@TsLogin
 	@Operation(summary = "分页条件查询声音列表")
 	@PostMapping("/findUserTrackPage/{pageNo}/{pageSize}")
 	public Result<Page<TrackListVo>> findUserTrackPage(@PathVariable Integer pageNo,
 														@PathVariable Integer pageSize,
 														@RequestBody TrackInfoQuery trackInfoQuery) {
 		Page<TrackInfoVo> page = new Page<>(pageNo, pageSize);
+		trackInfoQuery.setUserId(AuthContextHolder.getUserId());
 		return Result.ok(trackInfoService.findAlbumTrackPage(page,trackInfoQuery));
 	}
 

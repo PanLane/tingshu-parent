@@ -2,6 +2,7 @@ package com.atguigu.tingshu.album.api;
 
 import com.alibaba.fastjson.JSONObject;
 import com.atguigu.tingshu.album.service.AlbumInfoService;
+import com.atguigu.tingshu.common.annotation.TsLogin;
 import com.atguigu.tingshu.common.result.Result;
 import com.atguigu.tingshu.common.util.AuthContextHolder;
 import com.atguigu.tingshu.model.album.AlbumInfo;
@@ -35,6 +36,7 @@ public class AlbumInfoApiController {
 	}
 
 	//http://127.0.0.1:8515/api/album/albumInfo/findUserAlbumPage/1/10
+	@TsLogin
 	@Operation(summary = "分页条件查询专辑信息")
 	@PostMapping("/findUserAlbumPage/{pageNum}/{pageSize}")
 	public Result<Page<AlbumListVo>> findUserAlbumPage(@PathVariable Integer pageNum, @PathVariable Integer pageSize, @RequestBody AlbumInfoQuery albumInfoQuery){
