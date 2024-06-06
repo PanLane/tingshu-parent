@@ -47,7 +47,8 @@ public class TrackInfoApiController {
 														@PathVariable Integer pageSize,
 														@RequestBody TrackInfoQuery trackInfoQuery) {
 		Page<TrackInfoVo> page = new Page<>(pageNo, pageSize);
-		trackInfoQuery.setUserId(AuthContextHolder.getUserId());
+		//trackInfoQuery.setUserId(AuthContextHolder.getUserId());
+		trackInfoQuery.setUserId(1L);
 		return Result.ok(trackInfoService.findAlbumTrackPage(page,trackInfoQuery));
 	}
 

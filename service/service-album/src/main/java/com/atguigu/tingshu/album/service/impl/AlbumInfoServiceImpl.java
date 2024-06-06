@@ -5,6 +5,7 @@ import com.atguigu.tingshu.album.mapper.AlbumInfoMapper;
 import com.atguigu.tingshu.album.mapper.AlbumStatMapper;
 import com.atguigu.tingshu.album.service.AlbumAttributeValueService;
 import com.atguigu.tingshu.album.service.AlbumInfoService;
+import com.atguigu.tingshu.common.constant.KafkaConstant;
 import com.atguigu.tingshu.common.constant.SystemConstant;
 import com.atguigu.tingshu.common.util.AuthContextHolder;
 import com.atguigu.tingshu.model.album.AlbumAttributeValue;
@@ -22,6 +23,7 @@ import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -33,6 +35,8 @@ import java.util.stream.Collectors;
 @SuppressWarnings({"unchecked", "rawtypes"})
 public class AlbumInfoServiceImpl extends ServiceImpl<AlbumInfoMapper, AlbumInfo> implements AlbumInfoService {
 
+	@Autowired
+	KafkaTemplate<String,String> kafkaTemplate;
 	@Autowired
 	private AlbumInfoMapper albumInfoMapper;
 	@Autowired
@@ -100,6 +104,9 @@ public class AlbumInfoServiceImpl extends ServiceImpl<AlbumInfoMapper, AlbumInfo
 		saveAlumStat(new AlbumStat(albumInfo.getId(),"0402",0));
 		saveAlumStat(new AlbumStat(albumInfo.getId(),"0403",0));
 		saveAlumStat(new AlbumStat(albumInfo.getId(),"0404",0));
+
+		//专辑设置为公开,上架专辑
+		if("1".equals(albumInfoVo.getIsOpen())) kafkaTemplate.send(KafkaConstant.QUEUE_ALBUM_UPPER,albumInfo.getId().toString());
 	}
 
 	@Override
@@ -151,6 +158,13 @@ public class AlbumInfoServiceImpl extends ServiceImpl<AlbumInfoMapper, AlbumInfo
 			albumAttributeValue.setValueId(e.getValueId());
 			return albumAttributeValue;
 		}).collect(Collectors.toList());
+		if("1".equals(albumInfoVo.getIsOpen())){
+			//专辑设置为公开,上架专辑
+			kafkaTemplate.send(KafkaConstant.QUEUE_ALBUM_UPPER,albumId.toString());
+		}else {
+			//专辑设置为私有,下架专辑
+			kafkaTemplate.send(KafkaConstant.QUEUE_ALBUM_LOWER,albumId.toString());
+		}
 		albumAttributeValueService.saveBatch(albumAttributeValueList);
 	}
 

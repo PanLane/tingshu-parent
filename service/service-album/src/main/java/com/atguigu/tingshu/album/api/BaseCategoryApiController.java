@@ -1,9 +1,13 @@
 package com.atguigu.tingshu.album.api;
 
 import com.alibaba.fastjson.JSONObject;
+import com.atguigu.tingshu.album.service.AlbumAttributeValueService;
 import com.atguigu.tingshu.album.service.BaseCategoryService;
 import com.atguigu.tingshu.common.result.Result;
+import com.atguigu.tingshu.model.album.AlbumAttributeValue;
 import com.atguigu.tingshu.model.album.BaseAttribute;
+import com.atguigu.tingshu.model.album.BaseCategoryView;
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -37,6 +41,12 @@ public class BaseCategoryApiController {
 	@GetMapping("/findAttribute/{categoryId}")
 	public Result<List<BaseAttribute>> findAttribute(@PathVariable Long categoryId) {
 		return Result.ok(baseCategoryService.findAttribute(categoryId));
+	}
+
+	@Operation(summary = "根据三级分类Id获取到分类信息")
+	@GetMapping("/getCategoryView/{category3Id}")
+	public Result<BaseCategoryView> getCategoryView(@PathVariable Long category3Id) {
+		return Result.ok(baseCategoryService.getCategoryView(category3Id));
 	}
 
 

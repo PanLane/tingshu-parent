@@ -36,6 +36,12 @@ public class WxLoginApiController {
         return Result.ok(userInfoService.getUserInfo(AuthContextHolder.getUserId()));
     }
 
+    @Operation(summary = "根据用户id获取用户信息")
+    @GetMapping("/getUserInfoById")
+    public Result<UserInfoVo> getUserInfoById(@RequestParam Long userId) {
+        return Result.ok(userInfoService.getUserInfo(userId));
+    }
+
     @TsLogin
     @Operation(summary = "更新用户信息")
     @PostMapping("/updateUser")

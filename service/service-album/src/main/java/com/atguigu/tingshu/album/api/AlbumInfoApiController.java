@@ -1,14 +1,17 @@
 package com.atguigu.tingshu.album.api;
 
 import com.alibaba.fastjson.JSONObject;
+import com.atguigu.tingshu.album.service.AlbumAttributeValueService;
 import com.atguigu.tingshu.album.service.AlbumInfoService;
 import com.atguigu.tingshu.common.annotation.TsLogin;
 import com.atguigu.tingshu.common.result.Result;
 import com.atguigu.tingshu.common.util.AuthContextHolder;
+import com.atguigu.tingshu.model.album.AlbumAttributeValue;
 import com.atguigu.tingshu.model.album.AlbumInfo;
 import com.atguigu.tingshu.query.album.AlbumInfoQuery;
 import com.atguigu.tingshu.vo.album.AlbumInfoVo;
 import com.atguigu.tingshu.vo.album.AlbumListVo;
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -26,6 +29,8 @@ public class AlbumInfoApiController {
 
 	@Autowired
 	private AlbumInfoService albumInfoService;
+	@Autowired
+	private AlbumAttributeValueService albumAttributeValueService;
 
 	//http://127.0.0.1:8515/api/album/albumInfo/saveAlbumInfo
 	@Operation(summary = "保存专辑信息")
@@ -40,7 +45,8 @@ public class AlbumInfoApiController {
 	@Operation(summary = "分页条件查询专辑信息")
 	@PostMapping("/findUserAlbumPage/{pageNum}/{pageSize}")
 	public Result<Page<AlbumListVo>> findUserAlbumPage(@PathVariable Integer pageNum, @PathVariable Integer pageSize, @RequestBody AlbumInfoQuery albumInfoQuery){
-		albumInfoQuery.setUserId(AuthContextHolder.getUserId());
+		//albumInfoQuery.setUserId(AuthContextHolder.getUserId());
+		albumInfoQuery.setUserId(1L);
 		return Result.ok(albumInfoService.findUserAlbumPage(new Page<>(pageNum,pageSize), albumInfoQuery));
 	}
 
@@ -51,7 +57,7 @@ public class AlbumInfoApiController {
 		return Result.ok();
 	}
 
-	@Operation(summary = "专辑信息回显")
+	@Operation(summary = "根据专辑id获取专辑信息")
 	@GetMapping("/getAlbumInfo/{albumId}")
 	public Result<AlbumInfo> getAlbumInfo(@PathVariable Long albumId){
 		return Result.ok(albumInfoService.getAlbumInfo(albumId));
@@ -69,6 +75,12 @@ public class AlbumInfoApiController {
 	@GetMapping("/findUserAllAlbumList")
 	public Result<List<AlbumInfo>> findUserAllAlbumList(){
 		return Result.ok(albumInfoService.findUserAllAlbumList());
+	}
+
+	@Operation(summary = "获取专辑属性值列表")
+	@GetMapping("/findAlbumAttributeValue/{albumId}")
+	public Result<List<AlbumAttributeValue>> findAlbumAttributeValue(@PathVariable Long albumId){
+		return Result.ok(albumAttributeValueService.list(new LambdaQueryWrapper<AlbumAttributeValue>().eq(AlbumAttributeValue::getAlbumId,albumId)));
 	}
 }
 

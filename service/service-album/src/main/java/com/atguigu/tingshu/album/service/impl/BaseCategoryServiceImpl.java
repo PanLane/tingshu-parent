@@ -7,6 +7,7 @@ import com.atguigu.tingshu.model.album.BaseAttribute;
 import com.atguigu.tingshu.model.album.BaseCategory1;
 import com.atguigu.tingshu.model.album.BaseCategoryView;
 import com.atguigu.tingshu.model.base.BaseEntity;
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -91,5 +92,10 @@ public class BaseCategoryServiceImpl extends ServiceImpl<BaseCategory1Mapper, Ba
 	@Override
 	public List<BaseAttribute> findAttribute(Long categoryId) {
 		return baseAttributeMapper.selectAttribute(categoryId);
+	}
+
+	@Override
+	public BaseCategoryView getCategoryView(Long category3Id) {
+		return baseCategoryViewMapper.selectOne(new LambdaQueryWrapper<BaseCategoryView>().eq(BaseCategoryView::getCategory3Id,category3Id));
 	}
 }
