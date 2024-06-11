@@ -4,6 +4,7 @@ import com.alibaba.fastjson.JSONObject;
 import com.atguigu.tingshu.common.result.Result;
 import com.atguigu.tingshu.model.album.BaseAttribute;
 import com.atguigu.tingshu.model.album.BaseCategory1;
+import com.atguigu.tingshu.model.album.BaseCategory3;
 import com.atguigu.tingshu.model.album.BaseCategoryView;
 import com.baomidou.mybatisplus.extension.service.IService;
 
@@ -38,4 +39,11 @@ public interface BaseCategoryService extends IService<BaseCategory1> {
      * @return
      */
     JSONObject getBaseCategoryList(Long category1Id);
+
+    /**
+     * 根据一级分类Id查询三级分类列表
+     * @param category1Id 一级分类Id
+     * @return
+     */
+    List<BaseCategory3> findTopBaseCategory3(Long category1Id);
 }

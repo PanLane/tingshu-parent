@@ -3,6 +3,7 @@ package com.atguigu.tingshu.album.client;
 import com.atguigu.tingshu.album.client.impl.CategoryDegradeFeignClient;
 import com.atguigu.tingshu.common.result.Result;
 import com.atguigu.tingshu.model.album.BaseAttribute;
+import com.atguigu.tingshu.model.album.BaseCategory3;
 import com.atguigu.tingshu.model.album.BaseCategoryView;
 import org.springframework.cloud.openfeign.FeignClient;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -22,4 +23,7 @@ public interface CategoryFeignClient {
 
     @GetMapping("/getCategoryView/{category3Id}")
     Result<BaseCategoryView> getCategoryView(@PathVariable Long category3Id);
+
+    @GetMapping("/findTopBaseCategory3/{category1Id}")
+    Result<List<BaseCategory3>> findTopBaseCategory3(@PathVariable Long category1Id);
 }

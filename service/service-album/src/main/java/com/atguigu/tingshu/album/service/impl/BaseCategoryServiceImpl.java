@@ -5,6 +5,7 @@ import com.atguigu.tingshu.album.mapper.*;
 import com.atguigu.tingshu.album.service.BaseCategoryService;
 import com.atguigu.tingshu.model.album.BaseAttribute;
 import com.atguigu.tingshu.model.album.BaseCategory1;
+import com.atguigu.tingshu.model.album.BaseCategory3;
 import com.atguigu.tingshu.model.album.BaseCategoryView;
 import com.atguigu.tingshu.model.base.BaseEntity;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
@@ -134,5 +135,10 @@ public class BaseCategoryServiceImpl extends ServiceImpl<BaseCategory1Mapper, Ba
 
 		//返回数据
 		return jsonObject;
+	}
+
+	@Override
+	public List<BaseCategory3> findTopBaseCategory3(Long category1Id) {
+		return baseCategory3Mapper.selectByCategory1Id(category1Id);
 	}
 }

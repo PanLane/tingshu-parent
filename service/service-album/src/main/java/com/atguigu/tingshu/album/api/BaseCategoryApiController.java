@@ -6,6 +6,7 @@ import com.atguigu.tingshu.album.service.BaseCategoryService;
 import com.atguigu.tingshu.common.result.Result;
 import com.atguigu.tingshu.model.album.AlbumAttributeValue;
 import com.atguigu.tingshu.model.album.BaseAttribute;
+import com.atguigu.tingshu.model.album.BaseCategory3;
 import com.atguigu.tingshu.model.album.BaseCategoryView;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import io.swagger.v3.oas.annotations.Operation;
@@ -16,6 +17,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.util.Collections;
 import java.util.List;
 
 
@@ -53,6 +55,12 @@ public class BaseCategoryApiController {
 	@GetMapping("/getCategoryView/{category3Id}")
 	public Result<BaseCategoryView> getCategoryView(@PathVariable Long category3Id) {
 		return Result.ok(baseCategoryService.getCategoryView(category3Id));
+	}
+
+	@Operation(summary = "根据一级分类Id查询三级分类列表")
+	@GetMapping("/findTopBaseCategory3/{category1Id}")
+	public Result<List<BaseCategory3>> findTopBaseCategory3(@PathVariable Long category1Id){
+		return Result.ok(baseCategoryService.findTopBaseCategory3(category1Id));
 	}
 
 
