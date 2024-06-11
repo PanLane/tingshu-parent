@@ -98,4 +98,41 @@ public class BaseCategoryServiceImpl extends ServiceImpl<BaseCategory1Mapper, Ba
 	public BaseCategoryView getCategoryView(Long category3Id) {
 		return baseCategoryViewMapper.selectOne(new LambdaQueryWrapper<BaseCategoryView>().eq(BaseCategoryView::getCategory3Id,category3Id));
 	}
+
+	@Override
+	public JSONObject getBaseCategoryList(Long category1Id) {
+		//获取分类视图数据源
+		List<BaseCategoryView> baseCategoryViews = baseCategoryViewMapper.selectList(new LambdaQueryWrapper<BaseCategoryView>().eq(BaseCategoryView::getCategory1Id,category1Id));
+
+		//创建一级分类对象
+		JSONObject jsonObject = new JSONObject();
+		//封装数据
+		jsonObject.put("categoryName",baseCategoryViews.get(0).getCategory1Name());
+		jsonObject.put("categoryId",baseCategoryViews.get(0).getCategory1Id());
+		ArrayList<JSONObject> categoryChild = new ArrayList<>();
+		jsonObject.put("categoryChild",categoryChild);
+
+		//根据二级分类id分组去重
+		Map<Long, List<BaseCategoryView>> baseCategory2Map = baseCategoryViews.stream().collect(Collectors.groupingBy(BaseCategoryView::getCategory2Id));
+		baseCategory2Map.forEach((k,v)->{
+
+			//创建二级分类对象
+			JSONObject jsonObject2 = new JSONObject();
+			//封装数据
+			jsonObject2.put("categoryName",v.get(0).getCategory2Name());
+			jsonObject2.put("categoryId",k);
+			jsonObject2.put("categoryChild",v.stream().map(e->{
+				JSONObject jsonObject3 = new JSONObject();
+				jsonObject3.put("categoryName",e.getCategory3Name());
+				jsonObject3.put("categoryId",e.getCategory3Id());
+				return jsonObject3;
+			}).collect(Collectors.toList()));
+
+			//将二级分类对象添加到一级分类对象的categoryChild中
+			categoryChild.add(jsonObject2);
+		});
+
+		//返回数据
+		return jsonObject;
+	}
 }

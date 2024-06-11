@@ -1,5 +1,10 @@
 package com.atguigu.tingshu.search.service;
 
+import com.atguigu.tingshu.query.search.AlbumIndexQuery;
+import com.atguigu.tingshu.vo.search.AlbumSearchResponseVo;
+
+import java.io.IOException;
+
 public interface SearchService {
 
 
@@ -14,4 +19,11 @@ public interface SearchService {
      * @param albumId
      */
     void lowerAlbum(Long albumId);
+
+    /**
+     * 检索
+     * @param albumIndexQuery
+     * @return
+     */
+    AlbumSearchResponseVo search(AlbumIndexQuery albumIndexQuery) throws IOException;
 }

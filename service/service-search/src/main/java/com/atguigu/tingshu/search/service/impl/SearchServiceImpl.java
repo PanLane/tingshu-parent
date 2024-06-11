@@ -1,5 +1,11 @@
 package com.atguigu.tingshu.search.service.impl;
 
+import co.elastic.clients.elasticsearch.ElasticsearchClient;
+import co.elastic.clients.elasticsearch._types.SortOrder;
+import co.elastic.clients.elasticsearch.core.SearchRequest;
+import co.elastic.clients.elasticsearch.core.SearchResponse;
+import co.elastic.clients.elasticsearch.core.search.Hit;
+import co.elastic.clients.elasticsearch.core.search.TotalHits;
 import com.atguigu.tingshu.album.client.AlbumInfoFeignClient;
 import com.atguigu.tingshu.album.client.CategoryFeignClient;
 import com.atguigu.tingshu.common.result.Result;
@@ -8,16 +14,22 @@ import com.atguigu.tingshu.model.album.AlbumInfo;
 import com.atguigu.tingshu.model.album.BaseCategoryView;
 import com.atguigu.tingshu.model.search.AlbumInfoIndex;
 import com.atguigu.tingshu.model.search.AttributeValueIndex;
+import com.atguigu.tingshu.query.search.AlbumIndexQuery;
 import com.atguigu.tingshu.search.service.AlbumIndexRepository;
 import com.atguigu.tingshu.search.service.SearchService;
 import com.atguigu.tingshu.user.client.UserInfoFeignClient;
+import com.atguigu.tingshu.vo.search.AlbumInfoIndexVo;
+import com.atguigu.tingshu.vo.search.AlbumSearchResponseVo;
 import com.atguigu.tingshu.vo.user.UserInfoVo;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.util.Assert;
+import org.springframework.util.CollectionUtils;
+import org.springframework.util.StringUtils;
 
+import java.io.IOException;
 import java.util.List;
 import java.util.Random;
 import java.util.concurrent.CompletableFuture;
@@ -40,6 +52,8 @@ public class SearchServiceImpl implements SearchService {
     AlbumIndexRepository albumIndexRepository;
     @Autowired
     Executor myExecutor;
+    @Autowired
+    ElasticsearchClient elasticsearchClient;
 
     @Override
     public void upperAlbum(Long albumId) {
@@ -64,8 +78,8 @@ public class SearchServiceImpl implements SearchService {
             BaseCategoryView categoryView = categoryViewResult.getData();
             Assert.notNull(categoryView, "分类信息数据为空");
             //赋值
+            albumInfoIndex.setCategory1Id(categoryView.getCategory1Id());
             albumInfoIndex.setCategory2Id(categoryView.getCategory2Id());
-            albumInfoIndex.setCategory3Id(categoryView.getCategory3Id());
         });
 
         CompletableFuture<Void> userInfoCompletableFuture = albumInfoCompletableFuture.thenAccept(albumInfo -> {
@@ -93,7 +107,7 @@ public class SearchServiceImpl implements SearchService {
             }).collect(Collectors.toList());
             //赋值
             albumInfoIndex.setAttributeValueIndexList(attributeValueIndexList);
-        },myExecutor);
+        }, myExecutor);
 
         //设置播放量、订阅量、购买量、评论数、热度
         Random random = new Random();
@@ -103,7 +117,7 @@ public class SearchServiceImpl implements SearchService {
         albumInfoIndex.setCommentStatNum(random.nextInt(10000));
         albumInfoIndex.setHotScore(random.nextDouble() * 100);
 
-        CompletableFuture.allOf(albumInfoCompletableFuture,categoryCompletableFuture, attrCompletableFuture,userInfoCompletableFuture).join();
+        CompletableFuture.allOf(albumInfoCompletableFuture, categoryCompletableFuture, attrCompletableFuture, userInfoCompletableFuture).join();
 
         //上架
         albumIndexRepository.save(albumInfoIndex);
@@ -112,5 +126,112 @@ public class SearchServiceImpl implements SearchService {
     @Override
     public void lowerAlbum(Long albumId) {
         albumIndexRepository.deleteById(albumId);
+    }
+
+    @Override
+    public AlbumSearchResponseVo search(AlbumIndexQuery albumIndexQuery) throws IOException {
+        //获取检索条件
+        SearchRequest searchRequest = buildSearchRequest(albumIndexQuery);
+        //获取检索结果
+        SearchResponse<AlbumInfoIndex> searchResponse = elasticsearchClient.search(searchRequest, AlbumInfoIndex.class);
+        //赋值
+        AlbumSearchResponseVo albumSearchResponseVo = getAlbumSearchResponseVo(searchResponse);
+        Integer pageSize = albumIndexQuery.getPageSize();
+        Long total = albumSearchResponseVo.getTotal();
+        albumSearchResponseVo.setPageNo(albumIndexQuery.getPageNo());
+        albumSearchResponseVo.setPageSize(pageSize);
+        albumSearchResponseVo.setTotalPages((total - 1)/pageSize + 1);
+        //返回数据
+        return albumSearchResponseVo;
+    }
+
+    /**
+     * 构建查询对象
+     *
+     * @return SearchRequest
+     */
+    private SearchRequest buildSearchRequest(AlbumIndexQuery albumIndexQuery) {
+        SearchRequest.Builder builder = new SearchRequest.Builder().index("albuminfo");
+
+        /*************如果分类不为空，按分类进行检索*************/
+        //根据一级分类id检索
+        if (albumIndexQuery.getCategory1Id() != null) {
+            builder.query(q -> q.bool(b -> b.must(m -> m.match(mt -> mt.field("category1Id").query(albumIndexQuery.getCategory1Id())))));
+        }
+        //根据二级分类id检索
+        if (albumIndexQuery.getCategory2Id() != null) {
+            builder.query(q -> q.bool(b -> b.must(m -> m.match(mt -> mt.field("category2Id").query(albumIndexQuery.getCategory2Id())))));
+        }
+        //根据三级分类id检索
+        if (albumIndexQuery.getCategory3Id() != null) {
+            builder.query(q -> q.bool(b -> b.must(m -> m.match(mt -> mt.field("category3Id").query(albumIndexQuery.getCategory3Id())))));
+        }
+        /*************如果关键字和属性不为空，按关键字和属性进行检索*************/
+        //根据属性进行检索
+        List<String> attributeList = albumIndexQuery.getAttributeList();
+        if (!CollectionUtils.isEmpty(attributeList)) {
+            attributeList.forEach(attribute -> {
+                String[] attr = attribute.split(":");
+                if (attr.length == 2) {
+                    String attrId = attr[0];
+                    String valueId = attr[1];
+                    builder.query(q -> q.bool(b -> b.filter(f -> f.nested(n -> n.path("attributeValueIndexList").query(q2 -> q2.bool(b2 -> b2.must(m2 -> m2.term(t -> t.field("attributeValueIndexList.attributeId")
+                                            .value(attrId))).filter(f2 -> f2.term(t -> t.field("attributeValueIndexList.valueId").value(valueId)))))))));
+                }
+            });
+        }
+
+        //根据关键字进行检索，设置高亮
+        String keyword = albumIndexQuery.getKeyword();
+        if(StringUtils.hasText(keyword)){
+            builder.query(q->q.bool(b->b.must(m->m.multiMatch(v->v.query(keyword).fields("albumTitle","albumIntro")))));
+            builder.highlight(h->h.fields("albumTitle",fn->fn.preTags("<span style='color:#f86442'>").postTags("</span>")));
+        }
+
+        /****************************排序，分页***************************/
+        builder.from((albumIndexQuery.getPageNo()-1)* albumIndexQuery.getPageSize()).size(albumIndexQuery.getPageSize());
+        String order = albumIndexQuery.getOrder();
+        if(order!=null){
+            String[] split = order.split(":");
+            if(split.length==2){
+                String orderField = switch (split[0]) {
+                    case "2" -> "playStatNum";
+                    case "3" -> "createTime";
+                    default -> "hotScore";
+                };
+                builder.sort(s->s.field(f->f.field(orderField).order(split[1].equals("desc")?SortOrder.Desc:SortOrder.Asc)));
+            }
+        }
+
+        SearchRequest searchRequest = builder.build();
+        log.info("searchDSL："+searchRequest);
+
+        return searchRequest;
+    }
+
+    /**
+     * 创建AlbumSearchResponseVo并赋值
+     * @param searchResponse 搜索结果
+     * @return AlbumSearchResponseVo
+     */
+    private AlbumSearchResponseVo getAlbumSearchResponseVo(SearchResponse<AlbumInfoIndex> searchResponse) {
+        AlbumSearchResponseVo albumSearchResponseVo = new AlbumSearchResponseVo();
+
+        List<Hit<AlbumInfoIndex>> hits = searchResponse.hits().hits();
+
+        if(!CollectionUtils.isEmpty(hits)){
+            albumSearchResponseVo.setList(hits.stream().map(e->{
+                AlbumInfoIndexVo albumInfoIndexVo = new AlbumInfoIndexVo();
+                if(e.source()!=null) BeanUtils.copyProperties(e.source(),albumInfoIndexVo);
+                //设置高亮
+                if(e.highlight().get("albumTitle")!=null) albumInfoIndexVo.setAlbumTitle(e.highlight().get("albumTitle").get(0));
+                return albumInfoIndexVo;
+            }).collect(Collectors.toList()));
+        }
+
+        TotalHits total = searchResponse.hits().total();
+        albumSearchResponseVo.setTotal(total==null?0:total.value());
+
+        return albumSearchResponseVo;
     }
 }

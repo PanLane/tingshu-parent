@@ -35,6 +35,12 @@ public class BaseCategoryApiController {
 		return Result.ok(list);
 	}
 
+	@Operation(summary = "根据一级分类id获取全部分类数据")
+	@GetMapping("/getBaseCategoryList/{category1Id}")
+	public Result<JSONObject> getBaseCategoryList(@PathVariable Long category1Id){
+		JSONObject jsonObject = baseCategoryService.getBaseCategoryList(category1Id);
+		return Result.ok(jsonObject);
+	}
 
 	//http://127.0.0.1:8515/api/album/category/findAttribute/2
 	@Operation(summary = "根据一级分类id获取专辑属性")
