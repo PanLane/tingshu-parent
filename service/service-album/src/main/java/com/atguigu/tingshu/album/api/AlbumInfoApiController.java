@@ -11,7 +11,10 @@ import com.atguigu.tingshu.model.album.AlbumInfo;
 import com.atguigu.tingshu.query.album.AlbumInfoQuery;
 import com.atguigu.tingshu.vo.album.AlbumInfoVo;
 import com.atguigu.tingshu.vo.album.AlbumListVo;
+import com.atguigu.tingshu.vo.album.AlbumStatVo;
+import com.atguigu.tingshu.vo.album.TrackListVo;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -81,6 +84,13 @@ public class AlbumInfoApiController {
 	@GetMapping("/findAlbumAttributeValue/{albumId}")
 	public Result<List<AlbumAttributeValue>> findAlbumAttributeValue(@PathVariable Long albumId){
 		return Result.ok(albumAttributeValueService.list(new LambdaQueryWrapper<AlbumAttributeValue>().eq(AlbumAttributeValue::getAlbumId,albumId)));
+	}
+
+	@Operation(summary = "根据专辑id获取专辑统计信息")
+	@GetMapping("/getAlbumStatVo/{albumId}")
+	public Result<AlbumStatVo> getAlbumStatVo(@PathVariable Long albumId){
+		AlbumStatVo albumStatVo = albumInfoService.getAlbumStatVo(albumId);
+		return Result.ok(albumStatVo);
 	}
 }
 

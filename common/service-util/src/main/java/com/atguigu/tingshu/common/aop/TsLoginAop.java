@@ -42,7 +42,12 @@ public Object around(ProceedingJoinPoint joinPoint, TsLogin tsLogin) throws Thro
 
         //将用户信息于当前线程进行绑定
         try {
-            if(user!=null) AuthContextHolder.setUserId(user.getId());
+            if(user!=null){
+                AuthContextHolder.setUserId(user.getId());
+            }else if(StringUtils.hasText(token)) {
+                user = (UserInfo) redisTemplate.opsForValue().get(token);
+                if(user!=null) AuthContextHolder.setUserId(user.getId());
+            }
             //放行
             return joinPoint.proceed();
         } finally {

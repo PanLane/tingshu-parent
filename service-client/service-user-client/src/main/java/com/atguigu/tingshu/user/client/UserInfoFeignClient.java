@@ -4,8 +4,9 @@ import com.atguigu.tingshu.common.result.Result;
 import com.atguigu.tingshu.user.client.impl.UserInfoDegradeFeignClient;
 import com.atguigu.tingshu.vo.user.UserInfoVo;
 import org.springframework.cloud.openfeign.FeignClient;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
 
 /**
  * <p>
@@ -14,9 +15,12 @@ import org.springframework.web.bind.annotation.RequestParam;
  *
  * @author qy
  */
-@FeignClient(value = "service-user", fallback = UserInfoDegradeFeignClient.class,path = "/api/user/wxLogin")
+@FeignClient(value = "service-user", fallback = UserInfoDegradeFeignClient.class,path = "/api/user")
 public interface UserInfoFeignClient {
 
-    @GetMapping("/getUserInfoById")
+    @GetMapping("/wxLogin/getUserInfoById")
     Result<UserInfoVo> getUserInfoById(@RequestParam Long userId);
+
+    @PostMapping("/userInfo/getNotFreeTrackIdList/{albumId}")
+    Result<List<Long>> getNotFreeTrackIdList(@PathVariable Long albumId, @RequestBody List<Long> mayNeedPaidTrackIdList);
 }

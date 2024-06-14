@@ -3,39 +3,40 @@ package com.atguigu.tingshu.album.service.impl;
 import com.atguigu.tingshu.album.config.VodConstantProperties;
 import com.atguigu.tingshu.album.mapper.AlbumInfoMapper;
 import com.atguigu.tingshu.album.mapper.TrackInfoMapper;
-import com.atguigu.tingshu.album.service.AlbumInfoService;
 import com.atguigu.tingshu.album.service.TrackInfoService;
 import com.atguigu.tingshu.album.service.TrackStatService;
 import com.atguigu.tingshu.album.service.VodService;
 import com.atguigu.tingshu.common.constant.SystemConstant;
+import com.atguigu.tingshu.common.result.Result;
 import com.atguigu.tingshu.common.util.AuthContextHolder;
 import com.atguigu.tingshu.common.util.UploadFileUtil;
-import com.atguigu.tingshu.model.album.AlbumAttributeValue;
+import com.atguigu.tingshu.model.album.AlbumInfo;
 import com.atguigu.tingshu.model.album.TrackInfo;
 import com.atguigu.tingshu.model.album.TrackStat;
+import com.atguigu.tingshu.model.user.UserInfo;
 import com.atguigu.tingshu.query.album.TrackInfoQuery;
+import com.atguigu.tingshu.user.client.UserInfoFeignClient;
+import com.atguigu.tingshu.vo.album.AlbumTrackListVo;
 import com.atguigu.tingshu.vo.album.TrackInfoVo;
 import com.atguigu.tingshu.vo.album.TrackListVo;
 import com.atguigu.tingshu.vo.album.TrackMediaInfoVo;
+import com.atguigu.tingshu.vo.user.UserInfoVo;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.qcloud.vod.VodUploadClient;
 import com.qcloud.vod.model.VodUploadRequest;
 import com.qcloud.vod.model.VodUploadResponse;
-import com.tencentcloudapi.vod.v20180717.VodClient;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.Assert;
 import org.springframework.web.multipart.MultipartFile;
 
-import java.io.File;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.stream.Collectors;
 
 @Slf4j
@@ -55,6 +56,8 @@ public class TrackInfoServiceImpl extends ServiceImpl<TrackInfoMapper, TrackInfo
 	private TrackStatService trackStatService;
 	@Autowired
 	private AlbumInfoMapper albumInfoMapper;
+	@Autowired
+	private UserInfoFeignClient userInfoFeignClient;
 
 	@Override
 	public Map<String,String> uploadTrack(MultipartFile file) {
@@ -113,8 +116,8 @@ public class TrackInfoServiceImpl extends ServiceImpl<TrackInfoMapper, TrackInfo
 	}
 
 	@Override
-	public Page<TrackListVo> findAlbumTrackPage(Page<TrackInfoVo> page, TrackInfoQuery trackInfoQuery) {
-		return trackInfoMapper.selectAlbumTrackPage(page,trackInfoQuery);
+	public Page<TrackListVo> findUserTrackPage(Page<TrackInfoVo> page, TrackInfoQuery trackInfoQuery) {
+		return trackInfoMapper.selectUserTrackPage(page,trackInfoQuery);
 	}
 
 	@Override
@@ -160,5 +163,60 @@ public class TrackInfoServiceImpl extends ServiceImpl<TrackInfoMapper, TrackInfo
 		trackStat.setTrackId(trackId);
 		trackStat.setStatNum(0);
 		return trackStat;
+	}
+
+	@Override
+	public IPage<AlbumTrackListVo> findAlbumTrackPage(Page<AlbumTrackListVo> page, Long albumId) {
+		//声明用户信息变量
+		UserInfoVo userInfoVo = null;
+
+		//根据专辑id查询TrackListVo列表
+		List<AlbumTrackListVo> albumTrackListVoList = trackInfoMapper.selectAlbumTrackPage(page,albumId).getRecords();
+
+		//根据专辑id获取专辑信息
+		AlbumInfo albumInfo = albumInfoMapper.selectById(albumId);
+		//获取专辑付费类型
+		String payType = albumInfo.getPayType();
+
+		boolean isFree = true;//是否免费
+
+		//判断专辑是否需要付费
+		if(SystemConstant.ALBUM_PAY_TYPE_VIPFREE.equals(payType)){//专辑支付类型为vip免费
+			//从用户上下文中获取用户id
+			Long userId = AuthContextHolder.getUserId();
+			//如果用户id不为null，调用用户微服务，根据用户id获取用户信息
+			if(userId != null){
+				Result<UserInfoVo> userInfoVoResult = userInfoFeignClient.getUserInfoById(userId);
+				Assert.notNull(userInfoVoResult,"用户信息结果集为空");
+				userInfoVo = userInfoVoResult.getData();
+			}
+			//专辑支付类型为会员免费，判断用户是否登录并且为会员（未过期）
+			if(userInfoVo == null){
+				//用户没登录，
+				albumTrackListVoList.stream().filter(e->e.getOrderNum()>albumInfo.getTracksForFree()).forEach(e->e.setIsShowPaidMark(true));
+				return page;
+			}else if(!(userInfoVo.getIsVip() == 1 && userInfoVo.getVipExpireTime().after(new Date()))){
+				//用户不是会员状态 将isFree设置为false
+				isFree = false;
+			}
+		}else if(SystemConstant.ALBUM_PAY_TYPE_REQUIRE.equals(payType)){
+			//专辑支付类型为收费，将isFree设置为false
+			isFree = false;
+		}
+
+		//统一处理收费结果
+		if(!isFree){
+			//获取需要可能需要收费的声音id集合
+			List<Long> mayNeedPaidTrackIdList = albumTrackListVoList.stream().filter(trackListVo -> trackListVo.getOrderNum() > albumInfo.getTracksForFree()).map(AlbumTrackListVo::getTrackId).collect(Collectors.toList());
+			//调用用户微服务，根据用户是否够买专辑或声音得到最终需要收费的专辑id集合
+			Result<List<Long>> notFreeTrackIdListResult = userInfoFeignClient.getNotFreeTrackIdList(albumId,mayNeedPaidTrackIdList);
+			Assert.notNull(notFreeTrackIdListResult,"需要收费的声音结果集为空");
+			List<Long> notFreeTrackIdList = notFreeTrackIdListResult.getData();
+			albumTrackListVoList.stream().filter(e->e.getOrderNum()>albumInfo.getTracksForFree())
+					.forEach(e->e.setIsShowPaidMark(notFreeTrackIdList != null && notFreeTrackIdList.contains(e.getTrackId())));
+		}
+
+		//返回数据
+		return page;
 	}
 }

@@ -3,11 +3,13 @@ package com.atguigu.tingshu.album.api;
 import com.atguigu.tingshu.album.service.TrackInfoService;
 import com.atguigu.tingshu.common.annotation.TsLogin;
 import com.atguigu.tingshu.common.result.Result;
-import com.atguigu.tingshu.common.util.AuthContextHolder;
 import com.atguigu.tingshu.model.album.TrackInfo;
 import com.atguigu.tingshu.query.album.TrackInfoQuery;
+import com.atguigu.tingshu.vo.album.AlbumTrackListVo;
 import com.atguigu.tingshu.vo.album.TrackInfoVo;
 import com.atguigu.tingshu.vo.album.TrackListVo;
+import com.atguigu.tingshu.vo.album.TrackMediaInfoVo;
+import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -49,7 +51,7 @@ public class TrackInfoApiController {
 		Page<TrackInfoVo> page = new Page<>(pageNo, pageSize);
 		//trackInfoQuery.setUserId(AuthContextHolder.getUserId());
 		trackInfoQuery.setUserId(1L);
-		return Result.ok(trackInfoService.findAlbumTrackPage(page,trackInfoQuery));
+		return Result.ok(trackInfoService.findUserTrackPage(page,trackInfoQuery));
 	}
 
 
@@ -71,6 +73,14 @@ public class TrackInfoApiController {
 	public Result<Void> updateTrackInfo(@PathVariable Long id, @RequestBody TrackInfoVo trackInfoVo) {
 		trackInfoService.updateTrackInfo(id,trackInfoVo);
 		return Result.ok();
+	}
+
+	@TsLogin(required = false)
+	@Operation(summary = "查询专辑声音分页列表")
+	@GetMapping("/findAlbumTrackPage/{albumId}/{pageNo}/{pageSize}")
+	public Result<IPage<AlbumTrackListVo>> findAlbumTrackPage(@PathVariable Long albumId, @PathVariable Integer pageNo, @PathVariable Integer pageSize){
+		Page<AlbumTrackListVo> page = new Page(pageNo, pageSize);
+		return Result.ok(trackInfoService.findAlbumTrackPage(page,albumId));
 	}
 }
 

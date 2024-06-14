@@ -13,7 +13,7 @@
           and order_num > (select * from (select order_num from track_info where id = #{id} and is_deleted = 0) temp)
     </update>
 
-    <select id="selectAlbumTrackPage" resultType="com.atguigu.tingshu.vo.album.TrackListVo">
+    <select id="selectUserTrackPage" resultType="com.atguigu.tingshu.vo.album.TrackListVo">
         select
             t.album_id,t.id track_id,t.track_title,t.cover_url,t.media_duration,t.status,
             a.album_title,
@@ -39,6 +39,19 @@
         </where>
         group by t.id
         order by t.id desc
+    </select>
+    <select id="selectAlbumTrackPage" resultType="com.atguigu.tingshu.vo.album.AlbumTrackListVo">
+        select t.id trackId,t.track_title,t.media_duration,t.order_num,t.status,t.create_time,
+               sum(case when s.stat_type = '0701' then s.stat_num else 0 end) playStatNum,
+               sum(case when s.stat_type = '0704' then s.stat_num else 0 end) commentStatNum
+        from track_info t
+        join track_stat s on t.id = s.track_id
+        where
+          t.is_deleted = 0
+          and s.is_deleted = 0
+          and t.album_id = #{albumId}
+        group by s.track_id
+        order by t.order_num
     </select>
 </mapper>
 

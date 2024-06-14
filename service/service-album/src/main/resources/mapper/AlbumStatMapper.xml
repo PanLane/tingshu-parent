@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.atguigu.tingshu.album.mapper.AlbumStatMapper">
+
+
+    <select id="selectAlbumStatVo" resultType="com.atguigu.tingshu.vo.album.AlbumStatVo">
+        select album_id,
+               max(case when stat_type = '0401' then stat_num else 0 end) playStatNum,
+               max(case when stat_type = '0402' then stat_num else 0 end) subscribeStatNum,
+               max(case when stat_type = '0403' then stat_num else 0 end) buyStatNum,
+               max(case when stat_type = '0404' then stat_num else 0 end) commentStatNum
+        from album_stat
+        where is_deleted = 0 and album_id = #{albumId}
+        group by album_id
+    </select>
+</mapper>

@@ -12,11 +12,10 @@ import com.atguigu.tingshu.model.album.AlbumAttributeValue;
 import com.atguigu.tingshu.model.album.AlbumInfo;
 import com.atguigu.tingshu.model.album.AlbumStat;
 import com.atguigu.tingshu.query.album.AlbumInfoQuery;
-import com.atguigu.tingshu.vo.album.AlbumAttributeValueVo;
-import com.atguigu.tingshu.vo.album.AlbumInfoVo;
-import com.atguigu.tingshu.vo.album.AlbumListVo;
+import com.atguigu.tingshu.vo.album.*;
 import com.baomidou.mybatisplus.core.conditions.Wrapper;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.conditions.query.LambdaQueryChainWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
@@ -175,6 +174,11 @@ public class AlbumInfoServiceImpl extends ServiceImpl<AlbumInfoMapper, AlbumInfo
 				.eq(AlbumInfo::getUserId,userId)
 				.orderByDesc(AlbumInfo::getId).last("limit 20");
 		return albumInfoMapper.selectList(wrapper);
+	}
+
+	@Override
+	public AlbumStatVo getAlbumStatVo(Long albumId) {
+		return albumStatMapper.selectAlbumStatVo(albumId);
 	}
 
 	private void saveAlumStat(AlbumStat albumStat){

@@ -6,6 +6,7 @@ import com.atguigu.tingshu.vo.user.UserInfoVo;
 import com.baomidou.mybatisplus.extension.service.IService;
 import me.chanjar.weixin.common.error.WxErrorException;
 
+import java.util.List;
 import java.util.Map;
 
 public interface UserInfoService extends IService<UserInfo> {
@@ -25,4 +26,12 @@ public interface UserInfoService extends IService<UserInfo> {
      * @param userInfoVo
      */
     void updateUser(UserInfoVo userInfoVo);
+
+    /**
+     * 获取需要付费的声音id集合
+     * @param albumId
+     * @param mayNeedPaidTrackIdList
+     * @return
+     */
+    List<Long> getNotFreeTrackIdList(Long albumId, List<Long> mayNeedPaidTrackIdList);
 }

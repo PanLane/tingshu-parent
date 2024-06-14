@@ -5,10 +5,16 @@ import cn.binarywang.wx.miniapp.bean.WxMaJscode2SessionResult;
 import com.atguigu.tingshu.common.constant.KafkaConstant;
 import com.atguigu.tingshu.common.constant.RedisConstant;
 import com.atguigu.tingshu.common.constant.SystemConstant;
+import com.atguigu.tingshu.common.util.AuthContextHolder;
 import com.atguigu.tingshu.model.user.UserInfo;
+import com.atguigu.tingshu.model.user.UserPaidAlbum;
+import com.atguigu.tingshu.model.user.UserPaidTrack;
 import com.atguigu.tingshu.user.mapper.UserInfoMapper;
+import com.atguigu.tingshu.user.mapper.UserPaidAlbumMapper;
+import com.atguigu.tingshu.user.mapper.UserPaidTrackMapper;
 import com.atguigu.tingshu.user.service.UserInfoService;
 import com.atguigu.tingshu.vo.user.UserInfoVo;
+import com.baomidou.mybatisplus.core.conditions.Wrapper;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import lombok.extern.slf4j.Slf4j;
@@ -22,6 +28,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
@@ -40,6 +47,10 @@ public class UserInfoServiceImpl extends ServiceImpl<UserInfoMapper, UserInfo> i
 	private RedisTemplate redisTemplate;
 	@Autowired
 	private KafkaTemplate<String,String> kafkaTemplate;
+	@Autowired
+	private UserPaidTrackMapper userPaidTrackMapper;
+	@Autowired
+	private UserPaidAlbumMapper userPaidAlbumMapper;
 
 	@Override
 	@Transactional
@@ -94,5 +105,26 @@ public class UserInfoServiceImpl extends ServiceImpl<UserInfoMapper, UserInfo> i
 		UserInfo userInfo = new UserInfo();
 		BeanUtils.copyProperties(userInfoVo,userInfo);
 		userInfoMapper.updateById(userInfo);
+	}
+
+	@Override
+	public List<Long> getNotFreeTrackIdList(Long albumId, List<Long> mayNeedPaidTrackIdList) {
+		//从用户登录上下文对象中获取用户id
+		Long userId = AuthContextHolder.getUserId();
+		Wrapper<UserPaidAlbum> albumWrapper = new LambdaQueryWrapper<UserPaidAlbum>().eq(UserPaidAlbum::getUserId, userId).eq(UserPaidAlbum::getAlbumId, albumId);
+		//根据专辑id和用户id查询用户已购买的专辑
+		UserPaidAlbum userPaidAlbum = userPaidAlbumMapper.selectOne(albumWrapper);
+
+		if(userPaidAlbum!=null){
+			//用户已购买过该专辑，返回null
+			return null;
+		}
+
+		//根据专辑id和用户id查询用户已购买的声音
+		List<Long> userPaidTrackList = userPaidTrackMapper.selectPaidTrackIdtList(albumId,userId);
+		//用可能需要购买的声音id集合减去用户已购买的声音id集合
+		mayNeedPaidTrackIdList.removeAll(userPaidTrackList);
+		//返回数据
+		return mayNeedPaidTrackIdList;
 	}
 }
