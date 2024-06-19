@@ -4,10 +4,7 @@ import com.alibaba.fastjson.JSONObject;
 import com.atguigu.tingshu.album.service.AlbumAttributeValueService;
 import com.atguigu.tingshu.album.service.BaseCategoryService;
 import com.atguigu.tingshu.common.result.Result;
-import com.atguigu.tingshu.model.album.AlbumAttributeValue;
-import com.atguigu.tingshu.model.album.BaseAttribute;
-import com.atguigu.tingshu.model.album.BaseCategory3;
-import com.atguigu.tingshu.model.album.BaseCategoryView;
+import com.atguigu.tingshu.model.album.*;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -63,6 +60,11 @@ public class BaseCategoryApiController {
 		return Result.ok(baseCategoryService.findTopBaseCategory3(category1Id));
 	}
 
-
+	@Operation(summary = "查询所有一级分类信息")
+	@GetMapping("/findAllCategory1")
+	public Result<List<BaseCategory1>> findAllCategory1(){
+		List<BaseCategory1> list = baseCategoryService.findAllCategory1();
+		return Result.ok(list);
+	}
 }
 

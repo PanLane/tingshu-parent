@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.atguigu.tingshu.album.mapper.TrackStatMapper">
+
+    <update id="updateTrackStat">
+        update track_stat
+        set stat_num = stat_num + #{count}
+        where is_deleted = 0 and track_id = #{trackId} and stat_type = #{statType}
+    </update>
+
+    <select id="selectTrackStatVo" resultType="com.atguigu.tingshu.vo.album.TrackStatVo">
+        select
+            sum(case when stat_type = 'PLAY' then stat_num else 0 end) as playStatNum,
+            sum(case when stat_type = 'COLLECT' then stat_num else 0 end) as collectStatNum,
+            sum(case when stat_type = 'PRAISE' then stat_num else 0 end) as praiseStatNum,
+            sum(case when stat_type = 'COMMENT' then stat_num else 0 end) as commentStatNum
+        from track_stat
+        where is_deleted = 0 and track_id = #{trackId}
+    </select>
+</mapper>

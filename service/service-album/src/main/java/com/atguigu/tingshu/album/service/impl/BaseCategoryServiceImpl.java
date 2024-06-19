@@ -3,6 +3,7 @@ package com.atguigu.tingshu.album.service.impl;
 import com.alibaba.fastjson.JSONObject;
 import com.atguigu.tingshu.album.mapper.*;
 import com.atguigu.tingshu.album.service.BaseCategoryService;
+import com.atguigu.tingshu.common.annotation.TsCache;
 import com.atguigu.tingshu.model.album.BaseAttribute;
 import com.atguigu.tingshu.model.album.BaseCategory1;
 import com.atguigu.tingshu.model.album.BaseCategory3;
@@ -96,6 +97,7 @@ public class BaseCategoryServiceImpl extends ServiceImpl<BaseCategory1Mapper, Ba
 	}
 
 	@Override
+	@TsCache(cachePrefix = "category:info:",lockPrefix = "category:lock:")
 	public BaseCategoryView getCategoryView(Long category3Id) {
 		return baseCategoryViewMapper.selectOne(new LambdaQueryWrapper<BaseCategoryView>().eq(BaseCategoryView::getCategory3Id,category3Id));
 	}
@@ -140,5 +142,10 @@ public class BaseCategoryServiceImpl extends ServiceImpl<BaseCategory1Mapper, Ba
 	@Override
 	public List<BaseCategory3> findTopBaseCategory3(Long category1Id) {
 		return baseCategory3Mapper.selectByCategory1Id(category1Id);
+	}
+
+	@Override
+	public List<BaseCategory1> findAllCategory1() {
+		return baseCategory1Mapper.selectList(null);
 	}
 }

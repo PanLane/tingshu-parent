@@ -5,8 +5,11 @@
 
     <resultMap id="BaseAttributeMap" type="com.atguigu.tingshu.model.album.BaseAttribute">
         <id property="id" column="id"/>
+        <result property="createTime" column="a_create_time"/>
         <collection property="attributeValueList" ofType="com.atguigu.tingshu.model.album.BaseAttributeValue">
             <id property="id" column="attribute_value_id"/>
+            <result property="attributeId" column="id"/>
+            <result property="createTime" column="av_create_time"/>
             <result property="valueName" column="attribute_value_name"/>
         </collection>
     </resultMap>
@@ -16,8 +19,10 @@
             a.id,
             a.attribute_name,
             a.category1_id,
+            a.create_time a_create_time,
             av.id as attribute_value_id,
-            av.value_name as attribute_value_name
+            av.value_name as attribute_value_name,
+            av.create_time as av_create_time
         from base_attribute a
         join base_attribute_value av on a.id = av.attribute_id
         where a.category1_id = #{category1Id}

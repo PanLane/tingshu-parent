@@ -1,6 +1,7 @@
 package com.atguigu.tingshu.search.api;
 
 import com.atguigu.tingshu.common.result.Result;
+import com.atguigu.tingshu.model.search.AlbumInfoIndex;
 import com.atguigu.tingshu.query.search.AlbumIndexQuery;
 import com.atguigu.tingshu.search.service.SearchService;
 import com.atguigu.tingshu.vo.search.AlbumSearchResponseVo;
@@ -40,7 +41,7 @@ public class SearchApiController {
     @Operation(summary = "批量上传")
     @GetMapping("/saveBatch")
     public Result<Void> saveBatch(){
-        for (long i = 1; i <= 1500; i++) {
+        for (long i = 1; i <= 2000; i++) {
             searchService.upperAlbum(i);
         }
         return Result.ok();
@@ -64,6 +65,20 @@ public class SearchApiController {
     public Result<Set<String>> completeSuggest(@PathVariable String keyword) throws IOException {
         Set<String> set = searchService.completeSuggest(keyword);
         return Result.ok(set);
+    }
+
+    @Operation(summary = "手动更新排行榜")
+    @GetMapping("/updateLatelyAlbumRanking")
+    public Result<Void> updateLatelyAlbumRanking() throws IOException {
+        searchService.updateLatelyAlbumRanking();
+        return Result.ok();
+    }
+
+    @Operation(summary = "获取排行榜")
+    @GetMapping("/findRankingList/{category1Id}/{dimension}")
+    public Result<List<AlbumInfoIndex>> findRankingList(@PathVariable Long category1Id,@PathVariable String dimension){
+        List<AlbumInfoIndex> list = searchService.findRankingList(category1Id,dimension);
+        return Result.ok(list);
     }
 }
 

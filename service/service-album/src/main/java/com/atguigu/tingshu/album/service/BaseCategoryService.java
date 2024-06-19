@@ -46,4 +46,10 @@ public interface BaseCategoryService extends IService<BaseCategory1> {
      * @return
      */
     List<BaseCategory3> findTopBaseCategory3(Long category1Id);
+
+    /**
+     * 查询所有一级分类数据
+     * @return
+     */
+    List<BaseCategory1> findAllCategory1();
 }

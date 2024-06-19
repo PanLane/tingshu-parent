@@ -2,6 +2,7 @@ package com.atguigu.tingshu.search.service.impl;
 
 import com.atguigu.tingshu.album.client.AlbumInfoFeignClient;
 import com.atguigu.tingshu.album.client.CategoryFeignClient;
+import com.atguigu.tingshu.common.constant.RedisConstant;
 import com.atguigu.tingshu.common.result.Result;
 import com.atguigu.tingshu.model.album.AlbumInfo;
 import com.atguigu.tingshu.model.album.BaseCategoryView;
@@ -11,6 +12,8 @@ import com.atguigu.tingshu.vo.album.AlbumStatVo;
 import com.atguigu.tingshu.vo.user.UserInfoVo;
 import io.netty.util.concurrent.CompleteFuture;
 import lombok.extern.slf4j.Slf4j;
+import org.redisson.api.RBloomFilter;
+import org.redisson.api.RedissonClient;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.util.Assert;
@@ -33,6 +36,8 @@ public class ItemServiceImpl implements ItemService {
     private CategoryFeignClient categoryFeignClient;
     @Autowired
     private Executor myExecutor;
+    @Autowired
+    private RedissonClient redissonClient;
 
 
     @Override
@@ -40,6 +45,10 @@ public class ItemServiceImpl implements ItemService {
 
         //创建map，接收数据
         HashMap<String, Object> map = new HashMap<>();
+
+        //判断专辑id是否在布隆过滤器里
+        RBloomFilter<Object> bloomFilter = redissonClient.getBloomFilter(RedisConstant.ALBUM_BLOOM_FILTER);
+        if(!bloomFilter.contains(albumId)) return map; //不在直接返回
 
         //获取专辑信息
         CompletableFuture<AlbumInfo> albumInfoCompletableFuture = CompletableFuture.supplyAsync(() -> {

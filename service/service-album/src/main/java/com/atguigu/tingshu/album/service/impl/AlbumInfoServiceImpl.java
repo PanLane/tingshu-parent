@@ -5,7 +5,9 @@ import com.atguigu.tingshu.album.mapper.AlbumInfoMapper;
 import com.atguigu.tingshu.album.mapper.AlbumStatMapper;
 import com.atguigu.tingshu.album.service.AlbumAttributeValueService;
 import com.atguigu.tingshu.album.service.AlbumInfoService;
+import com.atguigu.tingshu.common.annotation.TsCache;
 import com.atguigu.tingshu.common.constant.KafkaConstant;
+import com.atguigu.tingshu.common.constant.RedisConstant;
 import com.atguigu.tingshu.common.constant.SystemConstant;
 import com.atguigu.tingshu.common.util.AuthContextHolder;
 import com.atguigu.tingshu.model.album.AlbumAttributeValue;
@@ -20,13 +22,18 @@ import com.baomidou.mybatisplus.extension.conditions.query.LambdaQueryChainWrapp
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import lombok.extern.slf4j.Slf4j;
+import org.jetbrains.annotations.NotNull;
+import org.redisson.api.RLock;
+import org.redisson.api.RedissonClient;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 @Slf4j
@@ -44,6 +51,10 @@ public class AlbumInfoServiceImpl extends ServiceImpl<AlbumInfoMapper, AlbumInfo
 	private AlbumAttributeValueMapper albumAttributeValueMapper;
 	@Autowired
 	private AlbumAttributeValueService albumAttributeValueService;
+	@Autowired
+	private RedisTemplate redisTemplate;
+	@Autowired
+	private RedissonClient redissonClient;
 
 	@Override
 	@Transactional
@@ -125,7 +136,46 @@ public class AlbumInfoServiceImpl extends ServiceImpl<AlbumInfoMapper, AlbumInfo
 	}
 
 	@Override
+	@TsCache(cachePrefix = RedisConstant.ALBUM_INFO_PREFIX,lockPrefix = RedisConstant.ALBUM_LOCK_SUFFIX)
 	public AlbumInfo getAlbumInfo(Long albumId) {
+		/*//先从缓存中查询
+		String key = RedisConstant.ALBUM_INFO_PREFIX+albumId;
+		AlbumInfo albumInfo = (AlbumInfo) redisTemplate.opsForValue().get(key);
+
+		if(albumInfo == null){
+			// 缓存中没有，查询数据库
+
+			//使用分布式锁，解决缓存击穿问题
+			String lockName = RedisConstant.ALBUM_LOCK_SUFFIX+albumId;
+			RLock lock = redissonClient.getLock(lockName);
+			lock.lock();
+			try{
+				//再从缓存中获取一次
+				albumInfo = (AlbumInfo) redisTemplate.opsForValue().get(key);
+				if(albumInfo != null) {
+					return albumInfo;
+				}
+				albumInfo = getInfoFromDb(albumId);
+				if(albumInfo == null){
+					//数据库中没有，将空对象加入缓存中，设置较短的过期时间
+					redisTemplate.opsForValue().set(key,new AlbumInfo(),RedisConstant.CACHE_TEMPORARY_TIMEOUT, TimeUnit.SECONDS);
+				}else {
+					//数据库中有，将数据加入缓存中，设置较长的过期时间
+					redisTemplate.opsForValue().set(key,albumInfo,RedisConstant.CACHE_TIMEOUT,TimeUnit.SECONDS);
+				}
+			}finally {
+				lock.unlock();//释放锁
+			}
+
+		}else {
+			log.info("===============从缓存中获取专辑信息");
+		}*/
+
+		//返回数据
+		return getInfoFromDb(albumId);
+	}
+
+	private AlbumInfo getInfoFromDb(Long albumId) {
 		//根据id获取专辑信息
 		AlbumInfo albumInfo = albumInfoMapper.selectById(albumId);
 		//根据id获取专辑属性值关联信息
@@ -177,6 +227,7 @@ public class AlbumInfoServiceImpl extends ServiceImpl<AlbumInfoMapper, AlbumInfo
 	}
 
 	@Override
+	@TsCache(cachePrefix = "albumStat:info:",lockPrefix = "albumStat:lock:")
 	public AlbumStatVo getAlbumStatVo(Long albumId) {
 		return albumStatMapper.selectAlbumStatVo(albumId);
 	}

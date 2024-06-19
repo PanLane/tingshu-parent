@@ -2,14 +2,14 @@ package com.atguigu.tingshu.album.service;
 
 import com.atguigu.tingshu.model.album.TrackInfo;
 import com.atguigu.tingshu.query.album.TrackInfoQuery;
-import com.atguigu.tingshu.vo.album.AlbumTrackListVo;
-import com.atguigu.tingshu.vo.album.TrackInfoVo;
-import com.atguigu.tingshu.vo.album.TrackListVo;
+import com.atguigu.tingshu.vo.album.*;
+import com.atguigu.tingshu.vo.order.TradeVo;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.IService;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.util.List;
 import java.util.Map;
 
 public interface TrackInfoService extends IService<TrackInfo> {
@@ -53,4 +53,32 @@ public interface TrackInfoService extends IService<TrackInfo> {
      * @return
      */
     IPage<AlbumTrackListVo> findAlbumTrackPage(Page<AlbumTrackListVo> page, Long albumId);
+
+    /**
+     * 更新声音、专辑统计信息
+     * @param trackStatMqVo
+     */
+    void updateTrackStat(TrackStatMqVo trackStatMqVo);
+
+    /**
+     * 获取声音统计信息
+     * @param trackId
+     * @return
+     */
+    TrackStatVo getTrackStatVo(Long trackId);
+
+    /**
+     * 获取用户声音分级购买支付列表
+     * @param trackId
+     * @return
+     */
+    List<Map<String,Object>> findUserTrackPaidList(Long trackId);
+
+    /**
+     * 根据声音id、声音数量，获取用户下单付费声音列表
+     * @param trackId
+     * @param trackCount
+     * @return
+     */
+    List<TrackInfo> findPaidTrackInfoList(Long trackId, Integer trackCount);
 }

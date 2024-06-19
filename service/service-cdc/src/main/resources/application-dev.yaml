@@ -1,0 +1,11 @@
+server:
+  port: 7080
+spring:
+  redis:
+    host: 192.168.5.20
+    port: 6379
+    password: 231126
+# canal配置
+canal:
+  destination: tingshuTopic
+  server: 192.168.5.20:11111

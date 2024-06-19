@@ -34,4 +34,18 @@ public interface UserInfoService extends IService<UserInfo> {
      * @return
      */
     List<Long> getNotFreeTrackIdList(Long albumId, List<Long> mayNeedPaidTrackIdList);
+
+    /**
+     * 判断用户是否购买过指定专辑
+     * @param albumId
+     * @return
+     */
+    Boolean isPaidAlbum(Long albumId);
+
+    /**
+     * 获取用户已购买的声音id集合
+     * @param albumId
+     * @return
+     */
+    List<Long> getPaidTrackIdList(Long albumId);
 }

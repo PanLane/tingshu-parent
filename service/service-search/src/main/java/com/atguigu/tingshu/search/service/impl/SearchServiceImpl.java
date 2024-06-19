@@ -17,12 +17,10 @@ import co.elastic.clients.json.JsonData;
 import com.alibaba.fastjson.JSON;
 import com.atguigu.tingshu.album.client.AlbumInfoFeignClient;
 import com.atguigu.tingshu.album.client.CategoryFeignClient;
+import com.atguigu.tingshu.common.constant.RedisConstant;
 import com.atguigu.tingshu.common.result.Result;
 import com.atguigu.tingshu.common.util.PinYinUtils;
-import com.atguigu.tingshu.model.album.AlbumAttributeValue;
-import com.atguigu.tingshu.model.album.AlbumInfo;
-import com.atguigu.tingshu.model.album.BaseCategory3;
-import com.atguigu.tingshu.model.album.BaseCategoryView;
+import com.atguigu.tingshu.model.album.*;
 import com.atguigu.tingshu.model.base.BaseEntity;
 import com.atguigu.tingshu.model.search.AlbumInfoIndex;
 import com.atguigu.tingshu.model.search.AttributeValueIndex;
@@ -36,14 +34,18 @@ import com.atguigu.tingshu.vo.search.AlbumInfoIndexVo;
 import com.atguigu.tingshu.vo.search.AlbumSearchResponseVo;
 import com.atguigu.tingshu.vo.user.UserInfoVo;
 import lombok.extern.slf4j.Slf4j;
+import org.redisson.api.RBloomFilter;
+import org.redisson.api.RedissonClient;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.elasticsearch.core.suggest.Completion;
+import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.util.Assert;
 import org.springframework.util.CollectionUtils;
 import org.springframework.util.StringUtils;
 
+import javax.naming.directory.SearchResult;
 import java.io.IOException;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
@@ -70,6 +72,10 @@ public class SearchServiceImpl implements SearchService {
     ElasticsearchClient elasticsearchClient;
     @Autowired
     SuggestIndexRepository suggestIndexRepository;
+    @Autowired
+    RedisTemplate redisTemplate;
+    @Autowired
+    RedissonClient redissonClient;
 
     @Override
     public void upperAlbum(Long albumId) {
@@ -84,6 +90,9 @@ public class SearchServiceImpl implements SearchService {
                 Assert.notNull(albumInfo, "专辑信息数据为空");
                 //赋值
                 BeanUtils.copyProperties(albumInfo, albumInfoIndex);
+                //将专辑id加到布隆过滤器中
+                RBloomFilter<Object> bloomFilter = redissonClient.getBloomFilter(RedisConstant.ALBUM_BLOOM_FILTER);
+                bloomFilter.add(albumInfo.getId());
                 return albumInfo;
             }, myExecutor);
 
@@ -232,12 +241,16 @@ public class SearchServiceImpl implements SearchService {
         HashSet<String> set = new HashSet<>();
 
         //创建ddl，从索引库中获取数据
-        SearchResponse<SuggestIndex> response = elasticsearchClient.search(
-                s -> s.index("suggestinfo")
-                        .suggest(sg -> sg.suggesters("suggest_keyword", f -> f.prefix(keyword).completion(c -> c.field("keyword").size(10).skipDuplicates(true).fuzzy(fu -> fu.fuzziness("auto")))))
-                        .suggest(sg -> sg.suggesters("suggest_keywordPinyin", f -> f.prefix(keyword).completion(c -> c.field("keywordPinyin").size(10).skipDuplicates(true).fuzzy(fu -> fu.fuzziness("auto")))))
-                        .suggest(sg -> sg.suggesters("suggest_keywordSequence", f -> f.prefix(keyword).completion(c -> c.field("keywordSequence").size(10).skipDuplicates(true).fuzzy(fu -> fu.fuzziness("auto")))))
-                , SuggestIndex.class);
+        SearchRequest.Builder builder = new SearchRequest.Builder();
+        builder.index("suggestinfo")
+                .suggest(sg -> sg
+                        .suggesters("suggest_keyword", f -> f.prefix(keyword).completion(c -> c.field("keyword").size(10).skipDuplicates(true).fuzzy(fu -> fu.fuzziness("auto"))))
+                        .suggesters("suggest_keywordPinyin", f -> f.prefix(keyword).completion(c -> c.field("keywordPinyin").size(10).skipDuplicates(true).fuzzy(fu -> fu.fuzziness("auto"))))
+                        .suggesters("suggest_keywordSequence", f -> f.prefix(keyword).completion(c -> c.field("keywordSequence").size(10).skipDuplicates(true).fuzzy(fu -> fu.fuzziness("auto")))));
+        SearchRequest searchRequest = builder.build();
+
+        System.out.println(searchRequest);
+        SearchResponse<SuggestIndex> response = elasticsearchClient.search(searchRequest, SuggestIndex.class);
 
         //处理结果集
         set.addAll(getSuggestSet(response,"suggest_keyword"));
@@ -263,6 +276,39 @@ public class SearchServiceImpl implements SearchService {
         return set;
     }
 
+    @Override
+    public void updateLatelyAlbumRanking() throws IOException {
+
+        //调用专辑微服务，获取所有一级分类id
+        Result<List<BaseCategory1>> baseCategory1ListResult = categoryFeignClient.findAllCategory1();
+        Assert.notNull(baseCategory1ListResult,"一级分类集合结果集为空");
+        List<BaseCategory1> list = baseCategory1ListResult.getData();
+        Assert.notNull(list,"一级分类集合为空");
+        String[] dimensions = new String[]{"hotScore","playStatNum","subscribeStatNum","buyStatNum","commentStatNum"};
+        for (BaseCategory1 baseCategory1 : list) {
+            for (String dimension : dimensions) {
+                //从ES中获取排行榜
+                SearchResponse<AlbumInfoIndex> response = elasticsearchClient.search(
+                        s -> s.index("albuminfo")
+                                .query(q->q.term(t->t.field("category1Id").value(baseCategory1.getId())))
+                                .sort(st->st.field(f->f.field(dimension).order(SortOrder.Desc)))
+                                .size(10)
+                        , AlbumInfoIndex.class);
+                List<Hit<AlbumInfoIndex>> hits = response.hits().hits();
+                if(CollectionUtils.isEmpty(hits)) return;
+                List<AlbumInfoIndex> albumInfoIndexList = hits.stream().map(Hit::source).collect(Collectors.toList());
+                //将结果存储到redis中
+                redisTemplate.opsForHash().put(RedisConstant.RANKING_KEY_PREFIX + baseCategory1.getId(),dimension,albumInfoIndexList);
+            }
+        }
+    }
+
+    @Override
+    public List<AlbumInfoIndex> findRankingList(Long category1Id,String dimension) {
+        //从redis中获取排行榜缓存并返回
+        return (List<AlbumInfoIndex>) redisTemplate.opsForHash().get(RedisConstant.RANKING_KEY_PREFIX + category1Id, dimension);
+    }
+
     /**
      * 根据结果集和关键字获取title的集合
      * @param response 结果集
@@ -272,7 +318,7 @@ public class SearchServiceImpl implements SearchService {
     private List<String> getSuggestSet(SearchResponse<SuggestIndex> response, String keyword) {
         List<String> list = new ArrayList<>();//防止set.addAll时发生空指针异常
         List<Suggestion<SuggestIndex>> suggestions = response.suggest().get(keyword);
-        if(suggestions!=null) suggestions.get(0).completion().options().stream().map(option -> option.source().getTitle()).collect(Collectors.toList());
+        if(suggestions!=null) list = suggestions.get(0).completion().options().stream().map(option -> option.source().getTitle()).collect(Collectors.toList());
         return list;
     }
 

@@ -23,4 +23,10 @@ public interface UserInfoFeignClient {
 
     @PostMapping("/userInfo/getNotFreeTrackIdList/{albumId}")
     Result<List<Long>> getNotFreeTrackIdList(@PathVariable Long albumId, @RequestBody List<Long> mayNeedPaidTrackIdList);
+
+    @GetMapping("/userInfo/isPaidAlbum/{albumId}")
+    Result<Boolean> isPaidAlbum(@PathVariable Long albumId);
+
+    @GetMapping("/userInfo/getPaidTrackIdList/{albumId}")
+    Result<List<Long>> getPaidTrackIdList(@PathVariable Long albumId);
 }

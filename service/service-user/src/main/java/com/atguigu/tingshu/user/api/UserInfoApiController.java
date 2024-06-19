@@ -27,6 +27,19 @@ public class UserInfoApiController {
 		return Result.ok(userInfoService.getNotFreeTrackIdList(albumId,mayNeedPaidTrackIdList));
 	}
 
+	@TsLogin
+	@Operation(summary = "判断用户是否购买过指定专辑")
+	@GetMapping("/isPaidAlbum/{albumId}")
+	public Result<Boolean> isPaidAlbum(@PathVariable Long albumId) {
+		return Result.ok(userInfoService.isPaidAlbum(albumId));
+	}
+
+	@TsLogin
+	@Operation(summary = "获取用户已购买声音id的集合")
+	@GetMapping("/getPaidTrackIdList/{albumId}")
+	Result<List<Long>> getPaidTrackIdList(@PathVariable Long albumId){
+		return Result.ok(userInfoService.getPaidTrackIdList(albumId));
+	}
 
 
 }

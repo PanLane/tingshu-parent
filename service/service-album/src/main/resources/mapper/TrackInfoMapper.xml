@@ -53,5 +53,8 @@
         group by s.track_id
         order by t.order_num
     </select>
+    <select id="selectMayNeedPaidTrackIdList" resultType="java.lang.Long">
+        select id from track_info where is_deleted = 0 and album_id = #{albumId} and order_num >= #{orderNum}
+    </select>
 </mapper>
 

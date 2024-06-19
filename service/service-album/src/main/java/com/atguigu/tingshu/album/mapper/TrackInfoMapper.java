@@ -40,4 +40,12 @@ public interface TrackInfoMapper extends BaseMapper<TrackInfo> {
      * @return
      */
     Page<AlbumTrackListVo> selectAlbumTrackPage(Page<AlbumTrackListVo> page, Long albumId);
+
+    /**
+     * 根据albumId、orderNum获取可能需要购买声音id的集合
+     * @param albumId
+     * @param orderNum
+     * @return
+     */
+    List<Long> selectMayNeedPaidTrackIdList(@Param("albumId") Long albumId,@Param("orderNum") Integer orderNum);
 }

@@ -1,5 +1,6 @@
 package com.atguigu.tingshu.search.service;
 
+import com.atguigu.tingshu.model.search.AlbumInfoIndex;
 import com.atguigu.tingshu.query.search.AlbumIndexQuery;
 import com.atguigu.tingshu.vo.search.AlbumSearchResponseVo;
 
@@ -43,4 +44,15 @@ public interface SearchService {
      * @return
      */
     Set<String> completeSuggest(String keyword) throws IOException;
+
+    /**
+     * 手动更新排行榜
+     */
+    void updateLatelyAlbumRanking() throws IOException;
+
+    /**
+     * 获取排行榜
+     * @return
+     */
+    List<AlbumInfoIndex> findRankingList(Long category1Id,String dimension);
 }

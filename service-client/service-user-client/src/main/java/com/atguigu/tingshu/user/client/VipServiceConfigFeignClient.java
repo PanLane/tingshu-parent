@@ -1,7 +1,11 @@
 package com.atguigu.tingshu.user.client;
 
+import com.atguigu.tingshu.common.result.Result;
+import com.atguigu.tingshu.model.user.VipServiceConfig;
 import com.atguigu.tingshu.user.client.impl.VipServiceConfigDegradeFeignClient;
 import org.springframework.cloud.openfeign.FeignClient;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 
 /**
  * <p>
@@ -10,8 +14,9 @@ import org.springframework.cloud.openfeign.FeignClient;
  *
  * @author qy
  */
-@FeignClient(value = "service-user", fallback = VipServiceConfigDegradeFeignClient.class)
+@FeignClient(value = "service-user", fallback = VipServiceConfigDegradeFeignClient.class,path = "api/user/vipServiceConfig")
 public interface VipServiceConfigFeignClient {
 
-
+    @GetMapping("/getVipServiceConfig/{id}")
+    Result<VipServiceConfig> getVipServiceConfig(@PathVariable Long id);
 }

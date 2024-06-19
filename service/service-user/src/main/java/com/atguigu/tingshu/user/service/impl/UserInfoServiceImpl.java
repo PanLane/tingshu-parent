@@ -127,4 +127,16 @@ public class UserInfoServiceImpl extends ServiceImpl<UserInfoMapper, UserInfo> i
 		//返回数据
 		return mayNeedPaidTrackIdList;
 	}
+
+	@Override
+	public Boolean isPaidAlbum(Long albumId) {
+		return userPaidAlbumMapper.selectOne(new LambdaQueryWrapper<UserPaidAlbum>()
+				.eq(UserPaidAlbum::getAlbumId, albumId)
+				.eq(UserPaidAlbum::getUserId, AuthContextHolder.getUserId())) != null;
+	}
+
+	@Override
+	public List<Long> getPaidTrackIdList(Long albumId) {
+		return userPaidTrackMapper.selectPaidTrackIdtList(albumId,AuthContextHolder.getUserId());
+	}
 }

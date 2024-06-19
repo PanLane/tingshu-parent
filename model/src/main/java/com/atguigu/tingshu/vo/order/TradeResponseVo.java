@@ -8,13 +8,13 @@ import java.util.List;
 
 @Data
 @Schema(description = "订单确认对象")
-public class TradeResponeVo {
+public class TradeResponseVo {
 
     @Schema(description = "订单原始金额")
     private BigDecimal originalAmount;
 
     @Schema(description = "减免总金额")
-    private BigDecimal derateAmount;
+    private BigDecimal decreaseAmount;
 
     @Schema(description = "订单总价")
     private BigDecimal orderAmount;

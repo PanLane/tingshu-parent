@@ -20,7 +20,7 @@ public class RedisConstant {
     public static final String ALBUM_BLOOM_FILTER="album:bloom:filter";
 
     public static final String CACHE_INFO_PREFIX = "cache:info:";
-    public static final String CACHE_LOCK_SUFFIX = "cache:lock:";
+    public static final String CACHE_LOCK_PREFIX = "cache:lock:";
 
     //单位：秒
     //单位：秒 尝试获取锁的最大等待时间
