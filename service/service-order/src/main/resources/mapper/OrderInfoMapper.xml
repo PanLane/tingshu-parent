@@ -1,12 +1,37 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 <!DOCTYPE mapper
-PUBLIC "-//ibatis.apache.org//DTD Mapper 3.0//EN"
-"http://ibatis.apache.org/dtd/ibatis-3-mapper.dtd">
+PUBLIC "-//ibatis.apache.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 
 
 <mapper namespace="com.atguigu.tingshu.order.mapper.OrderInfoMapper">
 
+    <resultMap id="selectUserPageMap" type="com.atguigu.tingshu.model.order.OrderInfo" autoMapping="true">
+        <id column="id" property="id"/>
+        <collection property="orderDetailList" ofType="com.atguigu.tingshu.model.order.OrderDetail" select="selectUserDetail" column="id" autoMapping="true">
+            <id column="id" property="id"/>
+        </collection>
+    </resultMap>
 
+    <select id="selectUserPage" resultMap="selectUserPageMap">
+        select * from order_info
+        where
+            is_deleted = 0 and user_id = #{userId}
+            <if test="orderStatus!=null and orderStatus!=''">
+                and orderStatus = #{orderStatus}
+            </if>
+        order by id desc
+    </select>
 
+    <select id="selectUserDetail" resultType="com.atguigu.tingshu.model.order.OrderDetail">
+        select * from order_detail
+        where is_deleted = 0 and order_id = #{id}
+    </select>
+
+    <select id="selectByOrderNo" resultMap="selectUserPageMap">
+        select * from order_info
+        where
+            is_deleted = 0 and order_no = #{orderNo}
+        order by id desc
+    </select>
 </mapper>
 

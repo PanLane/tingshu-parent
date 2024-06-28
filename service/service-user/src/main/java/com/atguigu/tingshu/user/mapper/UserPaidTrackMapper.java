@@ -19,4 +19,11 @@ public interface UserPaidTrackMapper extends BaseMapper<UserPaidTrack> {
      */
     @Select("select track_id from user_paid_track where is_deleted = 0 and album_id=#{albumId} and  user_id = #{userId}")
     List<Long> selectPaidTrackIdtList(@Param("albumId") Long albumId,@Param("userId") Long userId);
+
+    /**
+     * 根据用户id，订单号获取用户已购买的声音数量
+     * @return
+     */
+    @Select("select count(1) from user_paid_track where is_deleted = 0 and user_id = #{userId} and order_no = #{orderNo}")
+    int selectPaidTrackCount();
 }

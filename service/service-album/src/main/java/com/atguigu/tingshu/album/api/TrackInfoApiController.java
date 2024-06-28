@@ -102,5 +102,11 @@ public class TrackInfoApiController {
 		return Result.ok(trackInfoService.findPaidTrackInfoList(trackId,trackCount));
 	}
 
+	@Operation(summary = "根据声音id获取专辑id")
+	@GetMapping("/getAlbumIdByTrackId/{trackId}")
+	public Result<Long> getAlbumIdByTrackId(@PathVariable Long trackId) {
+		TrackInfo trackInfo = trackInfoService.getById(trackId);
+		return Result.ok(trackInfo.getAlbumId());
+	}
 }
 

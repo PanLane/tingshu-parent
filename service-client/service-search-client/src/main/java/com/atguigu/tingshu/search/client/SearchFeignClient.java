@@ -5,8 +5,11 @@ import com.atguigu.tingshu.common.result.Result;
 import com.atguigu.tingshu.vo.account.AccountLockResultVo;
 import com.atguigu.tingshu.vo.account.AccountLockVo;
 import org.springframework.cloud.openfeign.FeignClient;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
+
+import java.io.IOException;
 
 /**
  * <p>
@@ -15,7 +18,10 @@ import org.springframework.web.bind.annotation.RequestBody;
  *
  * @author qy
  */
-@FeignClient(value = "service-search", fallback = SearchDegradeFeignClient.class)
+@FeignClient(value = "service-search", fallback = SearchDegradeFeignClient.class,path = "api/search/albumInfo")
 public interface SearchFeignClient {
+
+    @GetMapping("/updateLatelyAlbumRanking")
+    Result<Void> updateLatelyAlbumRanking() throws IOException;
 
 }

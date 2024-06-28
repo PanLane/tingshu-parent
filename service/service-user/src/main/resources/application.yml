@@ -1,0 +1,13 @@
+seata:
+  enabled: true
+  tx-service-group: ${spring.application.name}-group # 事务组名称
+  service:
+    vgroup-mapping: # 指定事务分组至集群映射关系，集群名default要与seata-server集群配置一致
+      service-user-group: default
+  registry:
+    type: nacos
+    nacos:
+      server-addr: 192.168.5.20:8848 # nacos地址
+      namespace: 5529f6f8-1d32-48af-82bf-a742b330a09f
+      cluster: default
+      group: DEFAULT_GROUP

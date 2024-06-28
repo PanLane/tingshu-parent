@@ -13,13 +13,13 @@ public class WxPayV3Config {
 
     private String appid;
     /** 商户号 */
-    public String merchantId;
+    private String merchantId;
     /** 商户API私钥路径 */
-    public String privateKeyPath;
+    private String privateKeyPath;
     /** 商户证书序列号 */
-    public String merchantSerialNumber;
+    private String merchantSerialNumber;
     /** 商户APIV3密钥 */
-    public String apiV3key;
+    private String apiV3key;
     /** 回调地址 */
     private String notifyUrl;
 	

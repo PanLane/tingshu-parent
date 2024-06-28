@@ -1,8 +1,8 @@
 package com.atguigu.tingshu.user.service;
 
-import com.atguigu.tingshu.common.result.Result;
 import com.atguigu.tingshu.model.user.UserInfo;
 import com.atguigu.tingshu.vo.user.UserInfoVo;
+import com.atguigu.tingshu.vo.user.UserPaidRecordVo;
 import com.baomidou.mybatisplus.extension.service.IService;
 import me.chanjar.weixin.common.error.WxErrorException;
 
@@ -48,4 +48,15 @@ public interface UserInfoService extends IService<UserInfo> {
      * @return
      */
     List<Long> getPaidTrackIdList(Long albumId);
+
+    /**
+     * 更新支付成功后的状态
+     * @param parseObject
+     */
+    void updateUserPaidRecord(UserPaidRecordVo parseObject) throws Exception;
+
+    /**
+     * 更新用户vip状态
+     */
+    void updateUserVipStatus();
 }

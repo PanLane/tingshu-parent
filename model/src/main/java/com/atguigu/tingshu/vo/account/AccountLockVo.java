@@ -1,12 +1,16 @@
 package com.atguigu.tingshu.vo.account;
 
 import io.swagger.v3.oas.annotations.media.Schema;
+import lombok.AllArgsConstructor;
 import lombok.Data;
+import lombok.NoArgsConstructor;
 
 import java.math.BigDecimal;
 
 @Data
 @Schema(description = "锁定金额对象")
+@AllArgsConstructor
+@NoArgsConstructor
 public class AccountLockVo {
 
 	@Schema(description = "订单号")

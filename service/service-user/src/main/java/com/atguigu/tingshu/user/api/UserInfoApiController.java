@@ -3,6 +3,7 @@ package com.atguigu.tingshu.user.api;
 import com.atguigu.tingshu.common.annotation.TsLogin;
 import com.atguigu.tingshu.common.result.Result;
 import com.atguigu.tingshu.user.service.UserInfoService;
+import com.atguigu.tingshu.vo.user.UserPaidRecordVo;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -39,6 +40,20 @@ public class UserInfoApiController {
 	@GetMapping("/getPaidTrackIdList/{albumId}")
 	Result<List<Long>> getPaidTrackIdList(@PathVariable Long albumId){
 		return Result.ok(userInfoService.getPaidTrackIdList(albumId));
+	}
+
+	@Operation(summary = "更新用户vip状态")
+	@GetMapping("/updateUserVipStatus")
+	public Result<Void> updateUserVipStatus() {
+		userInfoService.updateUserVipStatus();
+		return Result.ok();
+	}
+
+	@Operation(summary = "更新支付成功后的状态")
+	@PostMapping("/payRecord")
+	public Result<Void> payRecord(@RequestBody UserPaidRecordVo userPaidRecordVo) throws Exception {
+		userInfoService.updateUserPaidRecord(userPaidRecordVo);
+		return Result.ok();
 	}
 
 

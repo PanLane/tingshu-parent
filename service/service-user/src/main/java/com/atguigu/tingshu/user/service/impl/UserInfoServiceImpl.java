@@ -2,18 +2,19 @@ package com.atguigu.tingshu.user.service.impl;
 
 import cn.binarywang.wx.miniapp.api.WxMaService;
 import cn.binarywang.wx.miniapp.bean.WxMaJscode2SessionResult;
+import com.atguigu.tingshu.album.client.TrackInfoFeignClient;
 import com.atguigu.tingshu.common.constant.KafkaConstant;
 import com.atguigu.tingshu.common.constant.RedisConstant;
-import com.atguigu.tingshu.common.constant.SystemConstant;
 import com.atguigu.tingshu.common.util.AuthContextHolder;
 import com.atguigu.tingshu.model.user.UserInfo;
 import com.atguigu.tingshu.model.user.UserPaidAlbum;
-import com.atguigu.tingshu.model.user.UserPaidTrack;
-import com.atguigu.tingshu.user.mapper.UserInfoMapper;
-import com.atguigu.tingshu.user.mapper.UserPaidAlbumMapper;
-import com.atguigu.tingshu.user.mapper.UserPaidTrackMapper;
+import com.atguigu.tingshu.user.mapper.*;
 import com.atguigu.tingshu.user.service.UserInfoService;
+import com.atguigu.tingshu.user.service.UserPaidTrackService;
+import com.atguigu.tingshu.user.stragety.PaymentStrategy;
+import com.atguigu.tingshu.user.stragety.impl.PaymentStrategyFactory;
 import com.atguigu.tingshu.vo.user.UserInfoVo;
+import com.atguigu.tingshu.vo.user.UserPaidRecordVo;
 import com.baomidou.mybatisplus.core.conditions.Wrapper;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
@@ -21,7 +22,6 @@ import lombok.extern.slf4j.Slf4j;
 import me.chanjar.weixin.common.error.WxErrorException;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.context.annotation.Bean;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Service;
@@ -51,6 +51,16 @@ public class UserInfoServiceImpl extends ServiceImpl<UserInfoMapper, UserInfo> i
 	private UserPaidTrackMapper userPaidTrackMapper;
 	@Autowired
 	private UserPaidAlbumMapper userPaidAlbumMapper;
+	@Autowired
+	private TrackInfoFeignClient trackInfoFeignClient;
+	@Autowired
+	private UserPaidTrackService userPaidTrackService;
+	@Autowired
+	private UserVipServiceMapper userVipServiceMapper;
+	@Autowired
+	private VipServiceConfigMapper vipServiceConfigMapper;
+	@Autowired
+	private PaymentStrategyFactory paymentStrategyFactory;
 
 	@Override
 	@Transactional
@@ -138,5 +148,107 @@ public class UserInfoServiceImpl extends ServiceImpl<UserInfoMapper, UserInfo> i
 	@Override
 	public List<Long> getPaidTrackIdList(Long albumId) {
 		return userPaidTrackMapper.selectPaidTrackIdtList(albumId,AuthContextHolder.getUserId());
+	}
+
+	@Override
+	@Transactional
+	public void updateUserPaidRecord(UserPaidRecordVo userPaidRecordVo) throws Exception {
+
+		//获取数据
+		List<Long> itemIdList = userPaidRecordVo.getItemIdList();
+		Long userId = userPaidRecordVo.getUserId();
+		String orderNo = userPaidRecordVo.getOrderNo();
+
+		//使用工厂加策略模式对以下代码进行优化
+		/*switch (userPaidRecordVo.getItemType()){
+			case SystemConstant.ORDER_ITEM_TYPE_ALBUM: //用户购买的是专辑
+				//根据用户id，订单号获取用户已购买的专辑
+				UserPaidAlbum userPaidAlbum = userPaidAlbumMapper.selectOne(new LambdaQueryWrapper<UserPaidAlbum>()
+						.eq(UserPaidAlbum::getUserId, userId)
+						.eq(UserPaidAlbum::getOrderNo, orderNo));
+				if(userPaidAlbum!=null){
+					//已经更新过，直接返回
+					return;
+				}
+				userPaidAlbum = new UserPaidAlbum();
+				userPaidAlbum.setUserId(userId);
+				userPaidAlbum.setAlbumId(itemIdList.get(0));
+				userPaidAlbum.setOrderNo(orderNo);
+				userPaidAlbumMapper.insert(userPaidAlbum);
+				break;
+			case SystemConstant.ORDER_ITEM_TYPE_TRACK: //用户购买的是声音
+				//根据用户id，订单号获取用户已购买的声音数量
+				int count = userPaidTrackMapper.selectPaidTrackCount();
+				if(count>0){
+					//已经更新过，直接返回
+					return;
+				}
+				//调用声音微服务客户端，根据声音id获取专辑id
+				Result<Long> albumIdResult= trackInfoFeignClient.getAlbumIdByTrackId(itemIdList.get(0));
+				Assert.notNull(albumIdResult,"专辑id结果集为空");
+				Long albumId = albumIdResult.getData();
+				Assert.notNull(albumId,"专辑id为空");
+
+				List<UserPaidTrack> userPaidTrackList = itemIdList.stream().map(itemId -> {
+					UserPaidTrack userPaidTrack = new UserPaidTrack();
+					userPaidTrack.setUserId(userId);
+					userPaidTrack.setOrderNo(orderNo);
+					userPaidTrack.setAlbumId(albumId);
+					userPaidTrack.setTrackId(itemId);
+					return userPaidTrack;
+				}).collect(Collectors.toList());
+				//批量保存
+				userPaidTrackService.saveBatch(userPaidTrackList);
+				break;
+			case SystemConstant.ORDER_ITEM_TYPE_VIP: //用户购买的是VIP
+				//根据用户id，订单号获取用户vip服务记录
+				UserVipService userVipService = userVipServiceMapper.selectOne(new LambdaQueryWrapper<UserVipService>()
+						.eq(UserVipService::getUserId, userId)
+						.eq(UserVipService::getOrderNo, orderNo));
+				if(userVipService!=null){
+					//已经更新过，直接返回
+					return;
+				}
+
+				userVipService = new UserVipService();
+
+				//更新用户的过期时间
+				//根据id获取vip服务配置信息
+				VipServiceConfig vipServiceConfig = vipServiceConfigMapper.selectById(itemIdList.get(0));
+				//根据id获取用户信息
+				UserInfo userInfo = userInfoMapper.selectById(userId);
+				//判断当前用户是否处于vip状态
+				if(userInfo.getIsVip()==1 && userInfo.getVipExpireTime().after(new Date())){
+					//设置vip服务记录的开始时间
+					userVipService.setStartTime(userInfo.getVipExpireTime());
+					//用户处于vip状态，续期
+					userInfo.setVipExpireTime(new DateTime(userInfo.getVipExpireTime()).plusMonths(vipServiceConfig.getServiceMonth()).toDate());
+					//设置vip服务记录的过期时间
+					userVipService.setExpireTime(userInfo.getVipExpireTime());
+				}else {
+					//用户不是vip状态，设置vip过期时间
+					userInfo.setVipExpireTime(new DateTime().plusMonths(vipServiceConfig.getServiceMonth()).toDate());
+					//设置vip服务记录的开始时间和过期时间
+					userVipService.setStartTime(new Date());
+					userVipService.setExpireTime(userInfo.getVipExpireTime());
+				}
+
+				//更新vip服务记录和用户信息
+				userInfo.setIsVip(1);
+				userVipService.setOrderNo(orderNo);
+				userVipService.setUserId(userId);
+				userInfoMapper.updateById(userInfo);
+				userVipServiceMapper.insert(userVipService);
+				break;
+			default:
+				throw new GuiguException(ResultCodeEnum.DATA_ERROR);
+		}*/
+		PaymentStrategy strategy = paymentStrategyFactory.getStrategy(userPaidRecordVo.getItemType());
+		strategy.processPayment(userId,orderNo,itemIdList);
+	}
+
+	@Override
+	public void updateUserVipStatus() {
+		userInfoMapper.updateUserVipStatus();
 	}
 }

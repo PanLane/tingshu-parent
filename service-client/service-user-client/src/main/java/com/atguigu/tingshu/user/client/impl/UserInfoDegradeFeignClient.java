@@ -4,6 +4,7 @@ package com.atguigu.tingshu.user.client.impl;
 import com.atguigu.tingshu.common.result.Result;
 import com.atguigu.tingshu.user.client.UserInfoFeignClient;
 import com.atguigu.tingshu.vo.user.UserInfoVo;
+import com.atguigu.tingshu.vo.user.UserPaidRecordVo;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
@@ -28,6 +29,16 @@ public class UserInfoDegradeFeignClient implements UserInfoFeignClient {
 
     @Override
     public Result<List<Long>> getPaidTrackIdList(Long albumId) {
+        return null;
+    }
+
+    @Override
+    public Result<Void> updateUserVipStatus() {
+        return null;
+    }
+
+    @Override
+    public Result<Void> payRecord(UserPaidRecordVo userPaidRecordVo) {
         return null;
     }
 }
